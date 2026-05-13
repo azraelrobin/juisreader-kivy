@@ -1,0 +1,39 @@
+# JuisReader 安卓阅读器
+
+基于 Python + Kivy 框架开发的安卓阅读器应用。
+
+## 功能
+
+- 📖 **书籍阅读** - 支持 TXT、EPUB、PDF 格式
+- 🖼️ **漫画阅读** - 支持 ZIP、CBZ 格式
+- 🔤 **中文优化** - 内置思源黑体字体
+- 📱 **纯横屏** - 固定竖屏显示
+- 🌐 **网络支持** - 支持网络书源
+
+## 技术栈
+
+- **框架**：Python 3 + Kivy 2.3.1
+- **打包**：Buildozer
+- **字体**：Noto Sans CJK SC
+
+## 运行
+
+### 安卓打包
+
+```bash
+# 安装依赖
+pip install buildozer kivy
+
+# 打包 APK
+buildozer android debug
+
+# 或在 Windows 上先配置 Android SDK 后执行
+python -m buildozer android debug
+项目结构
+main.py - 主程序入口
+main.kv - Kivy 界面布局文件
+buildozer.spec - Buildozer 打包配置
+NotoSansSC.ttf - 中文字体文件
+作者
+azraelrobin
+---
