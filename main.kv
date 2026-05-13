@@ -1,0 +1,642 @@
+#:kivy 2.2.0
+
+<Label>:
+    font_name: "NotoSansSC"
+
+<Button>:
+    font_name: "NotoSansSC"
+    color: (0.2, 0.2, 0.2, 1)
+    background_color: (0.2, 0.45, 0.9, 1)
+    background_normal: ""
+    background_down: ""
+    canvas.before:
+        Color:
+            rgba: self.background_color if self.state != "down" else (0.1, 0.3, 0.7, 1)
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+<TextInput>:
+    font_name: "NotoSansSC"
+
+<Label>:
+    font_name: "NotoSansSC"
+    color: (0.2, 0.2, 0.2, 1)
+
+<ReaderScreen>:
+    id: reader_screen
+    name: "reader"
+
+    BoxLayout:
+        orientation: "vertical"
+        padding: 0
+        spacing: 0
+
+        # === 顶部工具栏 ===
+        BoxLayout:
+            size_hint_y: None
+            height: "50dp"
+            padding: [10, 5]
+            canvas.before:
+                Color:
+                    rgba: (0.95, 0.95, 0.95, 1) if not root.night_mode else (0.12, 0.12, 0.12, 1)
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+
+            Button:
+                text: "← 书架"
+                size_hint_x: None
+                width: "80dp"
+                on_press: root.save_progress(); app.root.current = "bookshelf"
+
+            Label:
+                text: root.title or "阅读"
+                halign: "center"
+                valign: "middle"
+                text_size: self.size
+                shorten: True
+
+            Button:
+                text: "夜间"
+                size_hint_x: None
+                width: "60dp"
+                on_press: root.toggle_night()
+
+        # === 阅读区域 ===
+        BoxLayout:
+            size_hint_y: 1
+            canvas.before:
+                Color:
+                    rgba: (0.96, 0.92, 0.84, 1) if not root.night_mode else (0.165, 0.165, 0.165, 1)
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+
+            GridLayout:
+                cols: 3
+                size_hint_y: 1
+
+                # Left tap zone
+                BoxLayout:
+                    size_hint_x: 0.15
+                    size_hint_y: 1
+                    on_touch_down: root.prev_page()
+
+                # Middle content - tap to toggle toolbar
+                BoxLayout:
+                    size_hint_x: 0.7
+                    size_hint_y: 1
+                    on_touch_down: root.toggle_toolbar()
+
+                    TextInput:
+                        id: content_label
+                        text: "" if not root.is_loading else "加载中..."
+                        font_name: "NotoSansSC"
+                        font_size: root.font_size
+                        line_height: root.line_height
+                        foreground_color: (0.2, 0.2, 0.2, 1)
+                        background_color: (1, 1, 1, 0)
+                        padding: 15, 15
+                        halign: "left"
+                        valign: "top"
+                        multiline: True
+                        readonly: True
+                        focus: False
+                        input_type: "null"
+                        cursor_blink: False
+                        cursor_color: (1, 0, 0, 0)
+                        size_hint_y: 1
+
+                # Right tap zone
+                BoxLayout:
+                    size_hint_x: 0.15
+                    size_hint_y: 1
+                    on_touch_down: root.next_page()
+
+        # === 底部工具栏 ===
+        BoxLayout:
+            id: toolbar
+            opacity: 0
+            size_hint_y: None
+            height: "0dp"
+            padding: [5, 5]
+            spacing: 5
+            canvas.before:
+                Color:
+                    rgba: (0.95, 0.95, 0.95, 1) if not root.night_mode else (0.12, 0.12, 0.12, 1)
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+
+            Label:
+                id: chapter_label
+                text: f"{root.current_chapter} / {len(root.chapters)} 章"
+                font_size: "13sp"
+                size_hint_x: 0.4
+
+            Button:
+                text: "◀"
+                on_press: root.prev_page()
+            Button:
+                text: "▶"
+                on_press: root.next_page()
+            Button:
+                text: "目录"
+                on_press: root.show_chapters()
+            Button:
+                text: "A-"
+                on_press: root.change_font_size(-2)
+            Button:
+                text: "A+"
+                on_press: root.change_font_size(2)
+
+
+<BookshelfScreen>:
+    id: bookshelf_screen
+    name: "bookshelf"
+
+    BoxLayout:
+        orientation: "vertical"
+
+        # 顶部栏
+        BoxLayout:
+            size_hint_y: None
+            height: "50dp"
+            padding: [10, 5]
+            canvas.before:
+                Color:
+                    rgba: (0.2, 0.6, 1.0, 1)
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+
+            Label:
+                text: "书架"
+                font_size: "20sp"
+                bold: True
+
+            Button:
+                text: "阅读设置"
+                size_hint_x: None
+                width: "80dp"
+                on_press: root.show_reader_settings()
+
+            Button:
+                text: "WebDAV"
+                size_hint_x: None
+                width: "70dp"
+                on_press: root.show_webdav_settings()
+
+        # 状态
+        Label:
+            id: status_label
+            text: "点击「刷新」加载 WebDAV 目录"
+            size_hint_y: None
+            height: "36dp"
+            font_size: "13sp"
+            color: (0.45, 0.38, 0.28, 1)
+
+        # 文件列表
+        BoxLayout:
+            size_hint_y: 1
+            canvas.before:
+                Color:
+                    rgba: (1, 1, 1, 1)
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+
+            ScrollView:
+                size_hint_y: 1
+
+                GridLayout:
+                    id: file_grid
+                    cols: 1
+                    size_hint_y: None
+                    height: self.minimum_height
+                    padding: 10
+                    spacing: 8
+
+        # 底部按钮
+        BoxLayout:
+            size_hint_y: None
+            height: "56dp"
+            padding: 10
+            spacing: 10
+            canvas.before:
+                Color:
+                    rgba: (1, 1, 1, 1)
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+
+            Button:
+                text: "刷新列表"
+                background_color: (0.2, 0.45, 0.9, 1)
+                on_press: root.reload_list()
+            Button:
+                text: "设置"
+                background_color: (0.2, 0.45, 0.9, 1)
+                on_press: root.show_sync_settings()
+
+<ReaderSettingsScreen>:
+    name: "reader_settings"
+    night_mode: False
+
+    ScrollView:
+        do_scroll_x: False
+
+        BoxLayout:
+            orientation: "vertical"
+            size_hint_y: None
+            height: self.minimum_height
+            padding: 20
+            spacing: 20
+            canvas.before:
+                Color:
+                    rgba: (1, 1, 1, 1)
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+
+            Label:
+                text: "阅读设置"
+                font_size: "22sp"
+                bold: True
+                size_hint_y: None
+                height: "60dp"
+                color: (0.2, 0.2, 0.2, 1)
+
+            # 夜间模式
+            BoxLayout:
+                size_hint_y: None
+                height: "50dp"
+                spacing: 10
+
+                Label:
+                    text: "夜间模式"
+                    font_size: "16sp"
+                    size_hint_x: 1
+                    text_size: self.size
+                    valign: "middle"
+                    color: (0.25, 0.25, 0.25, 1)
+
+                Switch:
+                    id: night_switch
+                    active: root.night_mode
+                    size_hint_x: None
+                    width: "100dp"
+                    on_active: setattr(root, 'night_mode', self.active)
+
+            # 字体大小
+            BoxLayout:
+                size_hint_y: None
+                height: "50dp"
+                spacing: 10
+
+                Label:
+                    text: "字体大小"
+                    font_size: "16sp"
+                    size_hint_x: 1
+                    text_size: self.size
+                    valign: "middle"
+                    color: (0.25, 0.25, 0.25, 1)
+
+                Button:
+                    text: "A-"
+                    size_hint_x: None
+                    width: "60dp"
+                    background_color: (0.2, 0.45, 0.9, 1)
+                    on_press: root.font_size = max(12, root.font_size - 2)
+
+                Label:
+                    text: str(root.font_size)
+                    size_hint_x: None
+                    width: "40dp"
+                    font_size: "16sp"
+                    text_size: self.size
+                    valign: "middle"
+                    halign: "center"
+                    color: (0.2, 0.45, 0.9, 1)
+
+                Button:
+                    text: "A+"
+                    size_hint_x: None
+                    width: "60dp"
+                    background_color: (0.2, 0.45, 0.9, 1)
+                    on_press: root.font_size = min(32, root.font_size + 2)
+
+            # 行高
+            BoxLayout:
+                size_hint_y: None
+                height: "50dp"
+                spacing: 10
+
+                Label:
+                    text: "行高"
+                    font_size: "16sp"
+                    size_hint_x: 1
+                    text_size: self.size
+                    valign: "middle"
+                    color: (0.25, 0.25, 0.25, 1)
+
+                Button:
+                    text: "-"
+                    size_hint_x: None
+                    width: "60dp"
+                    background_color: (0.2, 0.45, 0.9, 1)
+                    on_press: root.line_height = max(2, root.line_height - 2)
+
+                Label:
+                    text: str(root.line_height)
+                    size_hint_x: None
+                    width: "40dp"
+                    font_size: "16sp"
+                    text_size: self.size
+                    valign: "middle"
+                    halign: "center"
+                    color: (0.2, 0.45, 0.9, 1)
+
+                Button:
+                    text: "+"
+                    size_hint_x: None
+                    width: "60dp"
+                    background_color: (0.2, 0.45, 0.9, 1)
+                    on_press: root.line_height = min(30, root.line_height + 2)
+
+            # 保存/返回
+            Button:
+                text: "保存并返回"
+                size_hint_y: None
+                height: "50dp"
+                background_color: (0.2, 0.45, 0.9, 1)
+                on_press: root.save()
+
+            Button:
+                text: "返回"
+                size_hint_y: None
+                height: "44dp"
+                background_color: (0.9, 0.94, 1.0, 1)
+                color: (0.2, 0.45, 0.9, 1)
+                on_press: root.back()
+
+
+<WebDAVSettingsScreen>:
+    name: "webdav_settings"
+
+    ScrollView:
+        do_scroll_x: False
+
+        BoxLayout:
+            orientation: "vertical"
+            size_hint_y: None
+            height: self.minimum_height
+            padding: 20
+            spacing: 20
+            canvas.before:
+                Color:
+                    rgba: (1, 1, 1, 1)
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+
+            Label:
+                text: "WebDAV 设置"
+                font_size: "22sp"
+                bold: True
+                size_hint_y: None
+                height: "60dp"
+                color: (0.2, 0.45, 0.9, 1)
+
+            # WebDAV 目录
+            Label:
+                text: "WebDAV 目录 URL"
+                size_hint_y: None
+                height: "36dp"
+                font_size: "15sp"
+                text_size: self.size
+                valign: "bottom"
+                color: (0.3, 0.3, 0.3, 1)
+
+            TextInput:
+                id: folder_input
+                hint_text: ""
+                multiline: False
+                size_hint_y: None
+                height: "48dp"
+                font_size: "15sp"
+                background_color: (0.97, 0.97, 0.97, 1)
+                foreground_color: (0.15, 0.15, 0.15, 1)
+                on_text: root.webdav_folder = self.text
+
+            # 用户名
+            Label:
+                text: "用户名"
+                size_hint_y: None
+                height: "36dp"
+                font_size: "15sp"
+                text_size: self.size
+                valign: "bottom"
+                color: (0.3, 0.3, 0.3, 1)
+
+            TextInput:
+                id: user_input
+                hint_text: ""
+                multiline: False
+                size_hint_y: None
+                height: "48dp"
+                font_size: "15sp"
+                background_color: (0.97, 0.97, 0.97, 1)
+                foreground_color: (0.15, 0.15, 0.15, 1)
+                on_text: root.webdav_user = self.text
+
+            # 密码
+            Label:
+                text: "密码"
+                size_hint_y: None
+                height: "36dp"
+                font_size: "15sp"
+                text_size: self.size
+                valign: "bottom"
+                color: (0.3, 0.3, 0.3, 1)
+
+            TextInput:
+                id: pwd_input
+                hint_text: ""
+                multiline: False
+                password: True
+                size_hint_y: None
+                height: "48dp"
+                font_size: "15sp"
+                background_color: (0.97, 0.97, 0.97, 1)
+                foreground_color: (0.15, 0.15, 0.15, 1)
+                on_text: root.webdav_pwd = self.text
+
+            # 缓存目录
+            Label:
+                text: "缓存目录"
+                size_hint_y: None
+                height: "36dp"
+                font_size: "15sp"
+                text_size: self.size
+                valign: "bottom"
+                color: (0.3, 0.3, 0.3, 1)
+
+            TextInput:
+                id: cache_input
+                hint_text: ""
+                multiline: False
+                size_hint_y: None
+                height: "48dp"
+                font_size: "15sp"
+                background_color: (0.97, 0.97, 0.97, 1)
+                foreground_color: (0.15, 0.15, 0.15, 1)
+                on_text: root.cache_dir = self.text
+
+            # 保存按钮
+            Button:
+                text: "保存并返回"
+                size_hint_y: None
+                height: "50dp"
+                background_color: (0.2, 0.45, 0.9, 1)
+                on_press: root.save()
+
+            Button:
+                text: "返回"
+                size_hint_y: None
+                height: "44dp"
+                background_color: (0.9, 0.94, 1.0, 1)
+                color: (0.2, 0.45, 0.9, 1)
+                on_press: root.back()
+
+
+<SyncSettingsScreen>:
+    name: "sync_settings"
+
+    ScrollView:
+        do_scroll_x: False
+
+        BoxLayout:
+            orientation: "vertical"
+            size_hint_y: None
+            height: self.minimum_height
+            padding: 20
+            spacing: 20
+            canvas.before:
+                Color:
+                    rgba: (1, 1, 1, 1)
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+
+            Label:
+                text: "进度同步设置"
+                font_size: "22sp"
+                bold: True
+                size_hint_y: None
+                height: "60dp"
+                color: (0.2, 0.45, 0.9, 1)
+
+            Label:
+                text: "设置进度同步的 WebDAV 位置（与书架目录独立）"
+                size_hint_y: None
+                height: "36dp"
+                font_size: "13sp"
+                color: (0.55, 0.55, 0.55, 1)
+
+            # WebDAV 目录
+            Label:
+                text: "WebDAV 目录 URL"
+                size_hint_y: None
+                height: "36dp"
+                font_size: "15sp"
+                text_size: self.size
+                valign: "bottom"
+                color: (0.3, 0.3, 0.3, 1)
+
+            TextInput:
+                id: sync_folder_input
+                hint_text: ""
+                multiline: False
+                size_hint_y: None
+                height: "48dp"
+                font_size: "15sp"
+                background_color: (0.97, 0.97, 0.97, 1)
+                foreground_color: (0.15, 0.15, 0.15, 1)
+                on_text: root.sync_folder = self.text
+
+            # 用户名
+            Label:
+                text: "用户名"
+                size_hint_y: None
+                height: "36dp"
+                font_size: "15sp"
+                text_size: self.size
+                valign: "bottom"
+                color: (0.3, 0.3, 0.3, 1)
+
+            TextInput:
+                id: sync_user_input
+                hint_text: ""
+                multiline: False
+                size_hint_y: None
+                height: "48dp"
+                font_size: "15sp"
+                background_color: (0.97, 0.97, 0.97, 1)
+                foreground_color: (0.15, 0.15, 0.15, 1)
+                on_text: root.sync_user = self.text
+
+            # 密码
+            Label:
+                text: "密码"
+                size_hint_y: None
+                height: "36dp"
+                font_size: "15sp"
+                text_size: self.size
+                valign: "bottom"
+                color: (0.3, 0.3, 0.3, 1)
+
+            TextInput:
+                id: sync_pwd_input
+                hint_text: ""
+                multiline: False
+                password: True
+                size_hint_y: None
+                height: "48dp"
+                font_size: "15sp"
+                background_color: (0.97, 0.97, 0.97, 1)
+                foreground_color: (0.15, 0.15, 0.15, 1)
+                on_text: root.sync_pwd = self.text
+
+            # 同步状态
+            Label:
+                id: sync_status_label
+                text: "状态: " + root.sync_status
+                size_hint_y: None
+                height: "36dp"
+                font_size: "14sp"
+                color: (0.2, 0.6, 0.35, 1)
+
+            Button:
+                text: "同步阅读进度"
+                size_hint_y: None
+                height: "50dp"
+                background_color: (0.2, 0.45, 0.9, 1)
+                on_press: root.sync_now()
+
+            # 保存按钮
+            Button:
+                text: "保存并返回"
+                size_hint_y: None
+                height: "50dp"
+                background_color: (0.2, 0.45, 0.9, 1)
+                on_press: root.save()
+
+            Button:
+                text: "返回"
+                size_hint_y: None
+                height: "44dp"
+                background_color: (0.9, 0.94, 1.0, 1)
+                color: (0.2, 0.45, 0.9, 1)
+                on_press: root.back()
